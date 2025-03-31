@@ -9,8 +9,8 @@ mod processor;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Resource {
     url: Url,
-    content: String,
     title: String,
+    description: String,
     timestamp: NaiveDate,
 }
 

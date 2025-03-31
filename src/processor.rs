@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use chrono::NaiveDate;
 use futures::{StreamExt, stream::FuturesUnordered};
 use reqwest::Response;
@@ -6,11 +8,12 @@ use select::{
     predicate::{Attr, Name},
 };
 use tokio::sync::mpsc;
-use tracing::{info, warn};
+use tracing::{debug, info, instrument, trace, warn};
 
 use crate::Resource;
 
-fn extract_title_and_content(document: &Document) -> (Option<String>, Option<&str>) {
+#[instrument(skip(document))]
+fn extract_title_and_description(document: &Document) -> (Option<String>, Option<String>) {
     let mut title = None;
     let mut content = None;
 
@@ -18,7 +21,7 @@ fn extract_title_and_content(document: &Document) -> (Option<String>, Option<&st
         title = Some(the_title.text());
     }
     if let Some(description) = document.find(Attr("name", "description")).next() {
-        content = description.attr("content");
+        content = description.attr("content").map(ToString::to_string);
     }
     (title, content)
 }
@@ -27,18 +30,32 @@ async fn page_details(
     (response, timestamp): (Response, NaiveDate),
 ) -> Result<Resource, reqwest::Error> {
     let url = response.url().clone();
+    let start = Instant::now();
     let text = response.text().await?;
-    let document = Document::from(text.as_str());
-    let (title, content) = extract_title_and_content(&document);
+    trace!(took = ?start.elapsed(), "extracted text");
+    let before_thread = Instant::now();
+    let (title, description) = tokio::task::spawn_blocking(move || {
+        let document = Document::from(text.as_str());
+        let result = extract_title_and_description(&document);
+        result
+    })
+    .await
+    .unwrap();
+    debug!(
+        %url,
+        took = ?before_thread.elapsed(),
+        "Finished processing",
+    );
     let resource = Resource {
         url,
-        content: content.unwrap_or_default().to_string(),
         title: title.unwrap_or_default(),
+        description: description.unwrap_or_default(),
         timestamp,
     };
     Ok(resource)
 }
 
+#[instrument(skip_all)]
 pub async fn processor(
     mut pages: mpsc::Receiver<(Response, NaiveDate)>,
     forward: mpsc::Sender<Resource>,
@@ -70,5 +87,5 @@ pub async fn processor(
             else => { break }
         }
     }
-    info!("Page processor finished");
+    info!("Page processing finished");
 }

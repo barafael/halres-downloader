@@ -10,6 +10,10 @@ struct Arguments {
     #[arg(short, long, default_value = "urls.csv")]
     file: PathBuf,
 
+    /// Output file.
+    #[arg(short, long, default_value = "resources.json")]
+    output: PathBuf,
+
     /// Channel size.
     #[arg(long, default_value_t = 64)]
     channel_size: usize,
@@ -66,6 +70,8 @@ async fn main() {
 
     let resources = collector.await.expect("Failed to collect resources");
 
-    println!("{resources:#?}");
     println!("Time elapsed: {:?}s", start.elapsed().as_secs_f32());
+
+    let json = serde_json::to_string_pretty(&resources).expect("Failed to serialize resources");
+    std::fs::write(args.output, json).unwrap();
 }
