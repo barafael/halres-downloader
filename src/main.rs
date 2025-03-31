@@ -1,29 +1,8 @@
-mod downloader;
-mod processor;
-
 use std::{fs::File, path::PathBuf, time::Instant};
 
-use chrono::NaiveDate;
-use clap::{Parser, arg};
-use serde::{Deserialize, Serialize};
-use tokio::sync::mpsc;
+use clap::Parser;
 use tracing::{debug, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use url::Url;
-
-#[derive(Debug, Serialize, Deserialize)]
-struct Resource {
-    url: Url,
-    content: String,
-    title: String,
-    timestamp: NaiveDate,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct Record {
-    timestamp: NaiveDate,
-    url: Url,
-}
 
 #[derive(Debug, Parser)]
 struct Arguments {
@@ -45,12 +24,7 @@ async fn main() {
 
     let args = Arguments::parse();
 
-    let (pages_tx, pages_rx) = mpsc::channel(64);
-    let (process_tx, process_rx) = mpsc::channel(64);
-    let (resource_tx, mut resource_rx) = mpsc::channel(64);
-
-    let _downloader = tokio::spawn(downloader::download_pages(pages_rx, process_tx));
-    let _processor = tokio::spawn(processor::processor(process_rx, resource_tx));
+    let (pages_tx, mut resource_rx) = halres_downloader::run().await;
 
     let collector = tokio::spawn(async move {
         let mut resources = Vec::new();
