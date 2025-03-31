@@ -20,7 +20,8 @@ pub struct Record {
     url: Url,
 }
 
-pub async fn run(
+#[must_use = "Use the returned sender to send records, dropping it when done, and the receiver to receive resources when they become available."]
+pub fn run(
     channel_size: usize,
     concurrency_limit: usize,
 ) -> (mpsc::Sender<Record>, mpsc::Receiver<Resource>) {

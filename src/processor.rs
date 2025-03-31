@@ -36,8 +36,7 @@ async fn page_details(
     let before_thread = Instant::now();
     let (title, description) = tokio::task::spawn_blocking(move || {
         let document = Document::from(text.as_str());
-        let result = extract_title_and_description(&document);
-        result
+        extract_title_and_description(&document)
     })
     .await
     .unwrap();

@@ -37,7 +37,7 @@ async fn main() {
     let args = Arguments::parse();
 
     let (pages_tx, mut resource_rx) =
-        halres_downloader::run(args.channel_size, args.concurrency_limit).await;
+        halres_downloader::run(args.channel_size, args.concurrency_limit);
 
     let collector = tokio::spawn(async move {
         let mut resources = Vec::new();
