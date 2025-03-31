@@ -42,15 +42,19 @@ async fn page_details(
 pub async fn processor(
     mut pages: mpsc::Receiver<(Response, NaiveDate)>,
     forward: mpsc::Sender<Resource>,
+    limit: usize,
 ) {
     let mut work = FuturesUnordered::new();
 
     loop {
+        let in_progress = work.len();
         tokio::select! {
-            Some(page) = pages.recv() => {
+            biased;
+
+            Some(page) = pages.recv(), if in_progress < limit => {
                 work.push(page_details(page));
             },
-            Some(resource) = work.next() => {
+            Some(resource) = work.next(), if in_progress > 0 => {
                 match resource {
                     Ok(resource) => {
                         if let Err(error) = forward.send(resource).await {

@@ -9,6 +9,14 @@ struct Arguments {
     /// Input file.
     #[arg(short, long, default_value = "urls.csv")]
     file: PathBuf,
+
+    /// Channel size.
+    #[arg(long, default_value_t = 64)]
+    channel_size: usize,
+
+    /// Maximum number of concurrent operations.
+    #[arg(long, default_value_t = 64)]
+    concurrency_limit: usize,
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -24,7 +32,8 @@ async fn main() {
 
     let args = Arguments::parse();
 
-    let (pages_tx, mut resource_rx) = halres_downloader::run().await;
+    let (pages_tx, mut resource_rx) =
+        halres_downloader::run(args.channel_size, args.concurrency_limit).await;
 
     let collector = tokio::spawn(async move {
         let mut resources = Vec::new();

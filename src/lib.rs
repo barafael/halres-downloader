@@ -20,12 +20,23 @@ pub struct Record {
     url: Url,
 }
 
-pub async fn run() -> (mpsc::Sender<Record>, mpsc::Receiver<Resource>) {
-    let (pages_tx, pages_rx) = mpsc::channel(64);
-    let (process_tx, process_rx) = mpsc::channel(64);
-    let (resource_tx, resource_rx) = mpsc::channel(64);
+pub async fn run(
+    channel_size: usize,
+    concurrency_limit: usize,
+) -> (mpsc::Sender<Record>, mpsc::Receiver<Resource>) {
+    let (pages_tx, pages_rx) = mpsc::channel(channel_size);
+    let (process_tx, process_rx) = mpsc::channel(channel_size);
+    let (resource_tx, resource_rx) = mpsc::channel(channel_size);
 
-    let _downloader = tokio::spawn(downloader::download_pages(pages_rx, process_tx));
-    let _processor = tokio::spawn(processor::processor(process_rx, resource_tx));
+    let _downloader = tokio::spawn(downloader::download_pages(
+        pages_rx,
+        process_tx,
+        concurrency_limit,
+    ));
+    let _processor = tokio::spawn(processor::processor(
+        process_rx,
+        resource_tx,
+        concurrency_limit,
+    ));
     (pages_tx, resource_rx)
 }
