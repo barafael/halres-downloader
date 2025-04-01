@@ -8,16 +8,16 @@ mod processor;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Resource {
-    url: Url,
-    title: String,
-    description: String,
-    timestamp: NaiveDate,
+    pub url: Url,
+    pub title: String,
+    pub description: String,
+    pub timestamp: NaiveDate,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Record {
-    timestamp: NaiveDate,
-    url: Url,
+    pub timestamp: NaiveDate,
+    pub url: Url,
 }
 
 #[must_use = "Use the returned sender to send records, dropping it when done, and the receiver to receive resources when they become available."]
