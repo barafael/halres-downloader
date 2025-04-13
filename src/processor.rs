@@ -40,11 +40,7 @@ async fn page_details(
     })
     .await
     .unwrap();
-    debug!(
-        %url,
-        took = ?before_thread.elapsed(),
-        "Finished processing",
-    );
+    debug!(%url, took = ?before_thread.elapsed(), "Finished processing");
     let resource = Resource {
         url,
         title: title.unwrap_or_default(),
