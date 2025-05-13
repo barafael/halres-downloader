@@ -41,3 +41,28 @@ pub fn run(
     ));
     (pages_tx, resource_rx)
 }
+
+pub async fn download_pages(
+    channel_size: usize,
+    concurrency_limit: usize,
+    urls: Vec<Record>,
+) -> Vec<Resource> {
+    let (pages_tx, mut resource_rx) = run(channel_size, concurrency_limit);
+
+    let collector = tokio::spawn(async move {
+        let mut resources = Vec::new();
+        while let Some(resource) = resource_rx.recv().await {
+            resources.push(resource);
+        }
+        resources
+    });
+
+    for record in urls {
+        pages_tx.send(record).await.expect("Failed to send record");
+    }
+    // let the downloader know there won't be any more incoming records for it.
+    drop(pages_tx);
+    // after this point, the downloader and processor shutdown on their own.
+
+    collector.await.expect("Failed to collect resources")
+}
